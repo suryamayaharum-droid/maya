@@ -23,4 +23,4 @@ ollama pull "${MODEL}"
 
 echo "[OpenBot] Concluído."
 echo "- Ollama API: http://127.0.0.1:11434"
-echo "- Inicie o OpenBot: python run_openbot.py"
+echo "- Inicie o OpenBot: python3 run_openbot.py"

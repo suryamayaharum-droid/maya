@@ -2,22 +2,32 @@
 
 OpenBot local com interface web conectada ao **Ollama**.
 
-## 1) Instalar Ollama e modelo
+## Provisionamento completo (recomendado)
+
+Este comando instala/provisiona o provedor Ollama, baixa o modelo, inicia os serviços e valida o chat:
+
+```bash
+bash provision_openbot.sh
+```
+
+Opcional (escolher modelo):
+
+```bash
+bash provision_openbot.sh mistral
+```
+
+## Fluxo manual (alternativo)
+
+### 1) Instalar Ollama e modelo
 
 ```bash
 bash setup_ollama.sh
 ```
 
-> Opcional: escolher modelo
+### 2) Iniciar o OpenBot
 
 ```bash
-bash setup_ollama.sh mistral
-```
-
-## 2) Iniciar o OpenBot
-
-```bash
-python run_openbot.py
+python3 run_openbot.py
 ```
 
 Acesse no navegador:
@@ -35,3 +45,4 @@ Acesse no navegador:
 - `openbot_interface.html`: interface web de chat.
 - `run_openbot.py`: servidor HTTP + API `/api/chat` integrada com Ollama.
 - `setup_ollama.sh`: instalador/configurador do Ollama para uso com OpenBot.
+- `provision_openbot.sh`: provisiona provedor, instala modelo, sobe serviços e valida operação.

@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>OpenBot Interface</title>
+    <title>OpenBot + Ollama</title>
     <style>
       :root {
         --bg: #0f172a;
@@ -12,10 +12,10 @@
         --text: #e5e7eb;
         --muted: #9ca3af;
         --accent: #22d3ee;
+        --ok: #10b981;
+        --bad: #ef4444;
       }
-
       * { box-sizing: border-box; }
-
       body {
         margin: 0;
         font-family: Inter, system-ui, Arial, sans-serif;
@@ -27,63 +27,67 @@
         justify-content: center;
         padding: 20px;
       }
-
       .app {
-        width: min(900px, 100%);
-        background: rgba(17, 24, 39, 0.85);
-        backdrop-filter: blur(6px);
+        width: min(960px, 100%);
+        background: rgba(17, 24, 39, 0.92);
         border: 1px solid #334155;
         border-radius: 16px;
         overflow: hidden;
-        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
       }
-
       header {
-        padding: 16px 20px;
+        padding: 14px 18px;
         background: linear-gradient(90deg, #0ea5e9, #14b8a6);
-        color: #05202d;
+        color: #03202b;
         font-weight: 700;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 8px;
       }
-
       .status {
-        background: rgba(255, 255, 255, 0.6);
         border-radius: 999px;
-        padding: 6px 10px;
+        padding: 4px 10px;
         font-size: 12px;
+        font-weight: 700;
+        color: #04242e;
+        background: rgba(255, 255, 255, 0.7);
+        justify-self: end;
       }
-
+      .status.ok { border: 1px solid rgba(16,185,129,.6); }
+      .status.bad { border: 1px solid rgba(239,68,68,.6); }
+      .controls {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        padding: 10px 14px;
+        background: #0b1324;
+        border-bottom: 1px solid #334155;
+      }
+      .controls label { color: var(--muted); font-size: 13px; }
+      .controls input {
+        width: 220px;
+        border: 1px solid #475569;
+        border-radius: 8px;
+        padding: 8px 10px;
+        background: #020617;
+        color: var(--text);
+      }
       #chat {
-        height: 62vh;
+        height: 58vh;
         padding: 16px;
         overflow-y: auto;
         display: flex;
         flex-direction: column;
         gap: 12px;
-        background: linear-gradient(180deg, rgba(17,24,39,0.9), rgba(15,23,42,0.95));
       }
-
       .msg {
-        max-width: 80%;
+        max-width: 85%;
         padding: 10px 14px;
         border-radius: 12px;
         line-height: 1.45;
         white-space: pre-wrap;
       }
-
-      .user {
-        align-self: flex-end;
-        background: #0369a1;
-      }
-
-      .bot {
-        align-self: flex-start;
-        background: var(--panel-2);
-        border: 1px solid #374151;
-      }
-
+      .user { align-self: flex-end; background: #0369a1; }
+      .bot { align-self: flex-start; background: var(--panel-2); border: 1px solid #374151; }
       form {
         display: flex;
         gap: 8px;
@@ -91,8 +95,7 @@
         background: var(--panel);
         border-top: 1px solid #334155;
       }
-
-      input {
+      #prompt {
         flex: 1;
         padding: 12px;
         border-radius: 10px;
@@ -100,7 +103,6 @@
         background: #0b1220;
         color: var(--text);
       }
-
       button {
         border: none;
         padding: 0 16px;
@@ -110,7 +112,6 @@
         font-weight: 700;
         cursor: pointer;
       }
-
       .hint {
         margin: 0;
         padding: 0 14px 14px;
@@ -123,23 +124,31 @@
   <body>
     <main class="app">
       <header>
-        <span>🤖 OpenBot Interface</span>
-        <span class="status">Online</span>
+        <span>🤖 OpenBot + Ollama</span>
+        <span id="status" class="status">Verificando...</span>
       </header>
+
+      <section class="controls">
+        <label for="model">Modelo</label>
+        <input id="model" type="text" value="llama3.2:1b" />
+      </section>
 
       <section id="chat"></section>
 
       <form id="chat-form">
         <input id="prompt" type="text" placeholder="Digite sua mensagem para o OpenBot..." required />
-        <button type="submit">Enviar</button>
+        <button id="send" type="submit">Enviar</button>
       </form>
-      <p class="hint">Dica: pergunte "ajuda" para ver comandos rápidos.</p>
+      <p class="hint">Se Ollama não estiver ativo, execute: <code>bash setup_ollama.sh</code></p>
     </main>
 
     <script>
       const chat = document.getElementById("chat");
       const form = document.getElementById("chat-form");
       const input = document.getElementById("prompt");
+      const modelInput = document.getElementById("model");
+      const sendButton = document.getElementById("send");
+      const statusEl = document.getElementById("status");
 
       function addMessage(text, who) {
         const div = document.createElement("div");
@@ -149,39 +158,74 @@
         chat.scrollTop = chat.scrollHeight;
       }
 
-      function generateResponse(message) {
-        const msg = message.toLowerCase().trim();
-
-        if (msg.includes("ajuda") || msg.includes("help")) {
-          return "Comandos rápidos:\n- status\n- sobre\n- hora";
-        }
-        if (msg.includes("status")) {
-          return "✅ OpenBot ativo e funcionando nesta interface local.";
-        }
-        if (msg.includes("sobre")) {
-          return "Sou o OpenBot local. Esta é uma interface web simples pronta para uso.";
-        }
-        if (msg.includes("hora")) {
-          return `Agora são ${new Date().toLocaleTimeString("pt-BR")}.`;
-        }
-
-        return "Recebi sua mensagem: \"" + message + "\"\nPosso ajudar com status, hora ou informações básicas.";
+      function setStatus(ok, text) {
+        statusEl.textContent = text;
+        statusEl.classList.remove("ok", "bad");
+        statusEl.classList.add(ok ? "ok" : "bad");
       }
 
-      addMessage("Olá! Eu sou o OpenBot. Digite uma mensagem para começar.", "bot");
+      async function checkOllama() {
+        try {
+          const response = await fetch("/api/ollama/status");
+          const data = await response.json();
+          if (!response.ok || !data.ok) {
+            throw new Error(data.error || "Sem conexão com Ollama");
+          }
 
-      form.addEventListener("submit", (event) => {
+          if (!modelInput.value && data.defaultModel) {
+            modelInput.value = data.defaultModel;
+          }
+
+          const count = Array.isArray(data.models) ? data.models.length : 0;
+          setStatus(true, `Ollama online (${count} modelo(s))`);
+          addMessage("Conexão com Ollama confirmada. Pode enviar sua pergunta.", "bot");
+        } catch (error) {
+          setStatus(false, "Ollama offline");
+          addMessage(
+            "Não consegui conectar no Ollama. Rode 'bash setup_ollama.sh' e inicie com 'ollama serve'.",
+            "bot"
+          );
+        }
+      }
+
+      async function sendMessage(message) {
+        const model = modelInput.value.trim() || "llama3.2:1b";
+        const response = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message, model }),
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || "Falha ao consultar o Ollama.");
+        }
+
+        return data.response;
+      }
+
+      form.addEventListener("submit", async (event) => {
         event.preventDefault();
         const text = input.value.trim();
         if (!text) return;
 
         addMessage(text, "user");
         input.value = "";
+        sendButton.disabled = true;
 
-        setTimeout(() => {
-          addMessage(generateResponse(text), "bot");
-        }, 280);
+        try {
+          const answer = await sendMessage(text);
+          addMessage(answer, "bot");
+        } catch (error) {
+          addMessage(`Erro: ${error.message}`, "bot");
+        } finally {
+          sendButton.disabled = false;
+          input.focus();
+        }
       });
+
+      addMessage("Inicializando OpenBot com backend Ollama...", "bot");
+      checkOllama();
     </script>
   </body>
 </html>

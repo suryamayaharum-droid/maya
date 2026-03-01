@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenBot Interface</title>
+    <style>
+      :root {
+        --bg: #0f172a;
+        --panel: #111827;
+        --panel-2: #1f2937;
+        --text: #e5e7eb;
+        --muted: #9ca3af;
+        --accent: #22d3ee;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        font-family: Inter, system-ui, Arial, sans-serif;
+        background: radial-gradient(circle at top right, #1e293b, var(--bg));
+        color: var(--text);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      }
+
+      .app {
+        width: min(900px, 100%);
+        background: rgba(17, 24, 39, 0.85);
+        backdrop-filter: blur(6px);
+        border: 1px solid #334155;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+      }
+
+      header {
+        padding: 16px 20px;
+        background: linear-gradient(90deg, #0ea5e9, #14b8a6);
+        color: #05202d;
+        font-weight: 700;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .status {
+        background: rgba(255, 255, 255, 0.6);
+        border-radius: 999px;
+        padding: 6px 10px;
+        font-size: 12px;
+      }
+
+      #chat {
+        height: 62vh;
+        padding: 16px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        background: linear-gradient(180deg, rgba(17,24,39,0.9), rgba(15,23,42,0.95));
+      }
+
+      .msg {
+        max-width: 80%;
+        padding: 10px 14px;
+        border-radius: 12px;
+        line-height: 1.45;
+        white-space: pre-wrap;
+      }
+
+      .user {
+        align-self: flex-end;
+        background: #0369a1;
+      }
+
+      .bot {
+        align-self: flex-start;
+        background: var(--panel-2);
+        border: 1px solid #374151;
+      }
+
+      form {
+        display: flex;
+        gap: 8px;
+        padding: 14px;
+        background: var(--panel);
+        border-top: 1px solid #334155;
+      }
+
+      input {
+        flex: 1;
+        padding: 12px;
+        border-radius: 10px;
+        border: 1px solid #475569;
+        background: #0b1220;
+        color: var(--text);
+      }
+
+      button {
+        border: none;
+        padding: 0 16px;
+        border-radius: 10px;
+        background: var(--accent);
+        color: #06202a;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .hint {
+        margin: 0;
+        padding: 0 14px 14px;
+        color: var(--muted);
+        font-size: 13px;
+        background: var(--panel);
+      }
+    </style>
+  </head>
+  <body>
+    <main class="app">
+      <header>
+        <span>🤖 OpenBot Interface</span>
+        <span class="status">Online</span>
+      </header>
+
+      <section id="chat"></section>
+
+      <form id="chat-form">
+        <input id="prompt" type="text" placeholder="Digite sua mensagem para o OpenBot..." required />
+        <button type="submit">Enviar</button>
+      </form>
+      <p class="hint">Dica: pergunte "ajuda" para ver comandos rápidos.</p>
+    </main>
+
+    <script>
+      const chat = document.getElementById("chat");
+      const form = document.getElementById("chat-form");
+      const input = document.getElementById("prompt");
+
+      function addMessage(text, who) {
+        const div = document.createElement("div");
+        div.className = `msg ${who}`;
+        div.textContent = text;
+        chat.appendChild(div);
+        chat.scrollTop = chat.scrollHeight;
+      }
+
+      function generateResponse(message) {
+        const msg = message.toLowerCase().trim();
+
+        if (msg.includes("ajuda") || msg.includes("help")) {
+          return "Comandos rápidos:\n- status\n- sobre\n- hora";
+        }
+        if (msg.includes("status")) {
+          return "✅ OpenBot ativo e funcionando nesta interface local.";
+        }
+        if (msg.includes("sobre")) {
+          return "Sou o OpenBot local. Esta é uma interface web simples pronta para uso.";
+        }
+        if (msg.includes("hora")) {
+          return `Agora são ${new Date().toLocaleTimeString("pt-BR")}.`;
+        }
+
+        return "Recebi sua mensagem: \"" + message + "\"\nPosso ajudar com status, hora ou informações básicas.";
+      }
+
+      addMessage("Olá! Eu sou o OpenBot. Digite uma mensagem para começar.", "bot");
+
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const text = input.value.trim();
+        if (!text) return;
+
+        addMessage(text, "user");
+        input.value = "";
+
+        setTimeout(() => {
+          addMessage(generateResponse(text), "bot");
+        }, 280);
+      });
+    </script>
+  </body>
+</html>

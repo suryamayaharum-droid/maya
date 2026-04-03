@@ -1,6 +1,8 @@
 import unittest
 
 import app as app_module
+import asgi as asgi_module
+import main as main_module
 from distributed_os_agent_mesh import (
     AutonomousSupervisor,
     MeshOrchestrator,
@@ -14,8 +16,10 @@ VALID_STAGES = {"concepcao", "gestacao", "formacao", "validacao", "emergencia"}
 
 
 class MeshTests(unittest.TestCase):
-    def test_fastapi_entrypoint_exposed(self):
+    def test_fastapi_entrypoints_exposed(self):
         self.assertTrue(hasattr(app_module, "app"))
+        self.assertTrue(hasattr(main_module, "app"))
+        self.assertTrue(hasattr(asgi_module, "app"))
 
     def test_mesh_runs_and_completes_tasks(self):
         summary = build_distributed_os_mesh(project_name="turboquant-test", workspace_root=".")

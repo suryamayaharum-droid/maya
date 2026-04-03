@@ -1,5 +1,6 @@
 import unittest
 
+import app as app_module
 from distributed_os_agent_mesh import (
     AutonomousSupervisor,
     MeshOrchestrator,
@@ -13,6 +14,9 @@ VALID_STAGES = {"concepcao", "gestacao", "formacao", "validacao", "emergencia"}
 
 
 class MeshTests(unittest.TestCase):
+    def test_fastapi_entrypoint_exposed(self):
+        self.assertTrue(hasattr(app_module, "app"))
+
     def test_mesh_runs_and_completes_tasks(self):
         summary = build_distributed_os_mesh(project_name="turboquant-test", workspace_root=".")
         self.assertIn("Tarefas concluídas: 7/7", summary)

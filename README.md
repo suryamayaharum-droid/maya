@@ -1,32 +1,37 @@
 # maya
 
-Malha de agentes de IA autônomos para construir um **sistema operacional distribuído**.
+Malha autônoma TurboQuant com provisionamento por repositórios, segurança integrada, gestação monitorada e mapeamento automático dos ambientes de execução.
 
-## O que este projeto entrega
+## Correção robusta para deploy no Vercel
 
-O arquivo `distributed_os_agent_mesh.py` cria uma malha com agentes especializados em:
+Para eliminar definitivamente o erro:
 
-- Arquitetura
-- Kernel
-- Rede/Consenso
-- Segurança
-- Observabilidade
-- QA/Resiliência
-- Release/Operação
+> "Nenhum ponto de entrada fastapi encontrado"
 
-A orquestração usa um grafo de dependências entre tarefas, memória compartilhada para artefatos e síntese final do plano de construção.
+foram adicionados **múltiplos entrypoints compatíveis**:
 
-## Como executar
+- `app.py` (principal)
+- `main.py` (alias)
+- `asgi.py` (alias)
+- `api/index.py` (entrypoint padrão para funções Vercel)
+- `pyproject.toml` com script `app = "app:app"`
+- `vercel.json` roteando tudo para `api/index.py`
+
+## API FastAPI (deploy)
+
+Rotas principais:
+- `GET /`
+- `GET /health`
+- `GET /environments`
+- `GET /plan`
+- `POST /run-once`
+- `POST /gestate`
+- `GET /summary`
+
+## CLI local
 
 ```bash
-python3 distributed_os_agent_mesh.py
-```
-
-## Exemplo de uso via API
-
-```python
-from distributed_os_agent_mesh import build_distributed_os_mesh
-
-resumo = build_distributed_os_mesh()
-print(resumo)
+python3 distributed_os_agent_mesh.py --map-env
+python3 distributed_os_agent_mesh.py --gestate --interval 1 --cycles 8
+python3 distributed_os_agent_mesh.py --serve --autonomous --interval 30 --cycles 0 --stop-on-emergence
 ```

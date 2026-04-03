@@ -5,6 +5,7 @@ from distributed_os_agent_mesh import (
     MeshOrchestrator,
     build_distributed_os_mesh,
     gestate_until_emergence,
+    map_execution_environments,
 )
 
 
@@ -24,6 +25,13 @@ class MeshTests(unittest.TestCase):
         for sig in orchestrator.memory.artifact_signatures.values():
             self.assertTrue(sig.startswith("hmac-sha256:"))
 
+    def test_environment_mapping_and_plan(self):
+        mapped = map_execution_environments()
+        self.assertIn("environment", mapped)
+        self.assertIn("execution_plan", mapped)
+        self.assertIn("platform", mapped["environment"])
+        self.assertIn("target", mapped["execution_plan"])
+
     def test_autonomous_supervisor_single_cycle(self):
         supervisor = AutonomousSupervisor(
             project_name="turboquant-test-3",
@@ -34,8 +42,8 @@ class MeshTests(unittest.TestCase):
         supervisor.cycle = 1
         payload = supervisor.run_once()
         self.assertEqual(payload["cycle"], 1)
-        self.assertIn("summary", payload)
-        self.assertIn("repo_fingerprint", payload)
+        self.assertIn("environments", payload)
+        self.assertIn("execution_plan", payload)
         self.assertIn(payload["growth"]["stage"], VALID_STAGES)
 
     def test_gestation_monitoring_payload(self):

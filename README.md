@@ -1,56 +1,46 @@
 # maya
 
-Malha completa de agentes autônomos para o **TurboQuant**, com provisionamento por repositórios, segurança integrada, operação contínua e **gestação monitorada até emergência**.
+Malha autônoma TurboQuant com provisionamento por repositórios, segurança integrada, gestação monitorada e **mapeamento automático dos ambientes de execução**.
 
-## O que foi concluído
+## Capacidades principais
 
 - Orquestração completa por DAG (arquitetura, runtime, rede, segurança, observabilidade, QA, release).
-- Provisionamento da IA a partir dos repositórios locais (bootstrap de conhecimento).
-- Memória persistente de projeto (`.turboquant_memory.json`) com relatórios por execução.
-- Assinatura de artefatos com HMAC-SHA256 e validação anti-injeção.
-- Endpoint HTTP local para acesso direto ao estado da malha.
-- Supervisor autônomo por ciclos com intervalo configurável.
-- **Gestação monitorada** com estágios (`concepcao`, `gestacao`, `formacao`, `validacao`, `emergencia`).
+- Supervisor autônomo por ciclos e gestação até emergência.
+- Memória persistente com histórico de crescimento e ambientes.
+- Assinatura de artefatos (HMAC-SHA256) e validação anti-injeção.
+- Auto-mapeamento de ambiente sem terminal interativo (`EnvironmentMapper`).
+- Planejamento automático de execução (`ExecutionPlanner`) para local/container/kubernetes.
 
-## Como rodar (execução única)
+## Comandos
+
+### 1) Execução única
 
 ```bash
 python3 distributed_os_agent_mesh.py
 ```
 
-## Iniciar gestação monitorada até emergência
+### 2) Mapear ambientes e plano automático
+
+```bash
+python3 distributed_os_agent_mesh.py --map-env
+```
+
+### 3) Gestação monitorada até emergência
 
 ```bash
 python3 distributed_os_agent_mesh.py --gestate --interval 1 --cycles 8
 ```
 
-## Como rodar com link de acesso (API local)
-
-```bash
-python3 distributed_os_agent_mesh.py --serve --host 127.0.0.1 --port 8787
-```
-
-## Como rodar em modo autônomo contínuo
+### 4) API local autônoma
 
 ```bash
 python3 distributed_os_agent_mesh.py --serve --autonomous --interval 30 --cycles 0 --stop-on-emergence
 ```
 
-## Links locais
+## Endpoints locais
 
 - `http://127.0.0.1:8787`
 - `http://127.0.0.1:8787/health`
 - `http://127.0.0.1:8787/growth`
-
-## Exemplo de resposta do endpoint `/growth`
-
-```json
-{
-  "cycle": 4,
-  "stage": "validacao",
-  "history": [
-    {"cycle": 1, "stage": "concepcao", "fitness": 0.82},
-    {"cycle": 2, "stage": "gestacao", "fitness": 0.86}
-  ]
-}
-```
+- `http://127.0.0.1:8787/environments`
+- `http://127.0.0.1:8787/plan`

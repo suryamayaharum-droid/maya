@@ -1,0 +1,23 @@
+{
+  "schema": "meaw.federation-link/v1",
+  "organism": "HARUM-MEAW",
+  "component": "maya",
+  "repository": "suryamayaharum-droid/maya",
+  "role": "persona-lab",
+  "organ": "persona-cell",
+  "capabilities": [
+    "persona"
+  ],
+  "lifecycle": "lab",
+  "trust": "owned",
+  "authority": "suryamayaharum-droid/SARASWATI-HIVE-MIND",
+  "authority_manifest": "ecosystem/repository_organism.json",
+  "nervous_system": "suryamayaharum-droid/ai23",
+  "memory_authority": "MemoryCastle@suryamayaharum-droid/SARASWATI-HIVE-MIND",
+  "policy": {
+    "discovery_executes_commands": false,
+    "manifest_grants_execution": false,
+    "explicit_adapter_required": true,
+    "secrets_allowed": false
+  }
+}

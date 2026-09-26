@@ -2,3 +2,7 @@
 .turboquant_*.tmp
 __pycache__/
 *.pyc
+.turboquant_data/
+.turboquant_state/
+*.log
+.venv/

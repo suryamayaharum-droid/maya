@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS environments(
 );
 CREATE TABLE IF NOT EXISTS embeddings(
     id INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT, ref TEXT,
-    vector BLOB, scale REAL, min_val REAL, sig64 INTEGER, ts INTEGER
+    vector BLOB, scale REAL, min_val REAL DEFAULT 0, sig64 INTEGER, ts INTEGER
 );
 CREATE INDEX IF NOT EXISTS idx_emb_kind ON embeddings(kind);
 CREATE INDEX IF NOT EXISTS idx_dec_ts ON decisions(ts);
@@ -62,19 +62,27 @@ def _slug(name: str) -> str:
     return re.sub(r"[^a-zA-Z0-9_.-]+", "_", name).strip("_") or "default"
 
 
-def _pack(vec: Sequence[float]) -> Tuple[bytes, float, float]:
-    """Quantização INT8 assimétrica (min-max) compacta."""
+_INT8_MIN = -(1 << 7)   # -128
+_INT8_MAX = (1 << 7) - 1  # 127
+
+
+def _pack(vec: Sequence[float]) -> Tuple[bytes, float]:
+    """Quantização simétrica INT8: escala pela MAIOR magnitude (não pelo range).
+
+    Erro por componente ≤ amplitude/254 ≈ 0,4% da norma — independente da
+    distribuição dos dados (robusto a outliers de cauda que destruíam a versão
+    min-max em embeddings esparsos).
+    """
     if not vec:
-        return b"", 1.0, 0.0
-    lo, hi = min(vec), max(vec)
-    span = hi - lo or 1.0
-    scale = span / 255.0
-    q = bytes(max(0, min(255, int(round((x - lo) / scale)))) for x in vec)
-    return q, scale, lo
+        return b"", 1.0
+    amp = max(max(vec), -min(vec)) or 1.0
+    scale = amp / _INT8_MAX
+    q = [max(_INT8_MIN, min(_INT8_MAX, int(round(x / scale)))) for x in vec]
+    return struct.pack(f"<{len(q)}b", *q), scale
 
 
-def _unpack(blob: bytes, scale: float, min_val: float) -> List[float]:
-    return [(v - 0) * scale + min_val for v in blob]
+def _unpack(blob: bytes, scale: float) -> List[float]:
+    return [v * scale for v in struct.unpack(f"<{len(blob)}b", blob)]
 
 
 class MeshStore:
@@ -165,10 +173,10 @@ class MeshStore:
         sig = mh.signature(mh.shingles(text))
         # bucket LSH-ish: 32 bits (SQLite INTEGER é assinado de 64 bits)
         sig64 = (sig[0] if sig else 0) & 0xFFFFFFFF
-        blob, scale, lo = _pack(embed(text))
+        blob, scale = _pack(embed(text))
         self._conn.execute(
             "INSERT INTO embeddings(kind,ref,vector,scale,min_val,sig64,ts) VALUES(?,?,?,?,?,?,?)",
-            (kind, ref, blob, scale, lo, sig64, int(time.time())),
+            (kind, ref, blob, scale, 0.0, sig64, int(time.time())),
         )
         self._conn.commit()
 
@@ -181,12 +189,12 @@ class MeshStore:
         """
         q = embed(query)
         rows = self._conn.execute(
-            "SELECT ref,vector,scale,min_val FROM embeddings" + (" WHERE kind=?" if kind else ""),
+            "SELECT ref,vector,scale FROM embeddings" + (" WHERE kind=?" if kind else ""),
             (kind,) if kind else (),
         ).fetchall()
         scored: List[Tuple[str, float]] = []
-        for ref, blob, scale, lo in rows:
-            vec = _unpack(blob, scale, lo)
+        for ref, blob, scale in rows:
+            vec = _unpack(blob, scale)
             scored.append((ref, _cosine(q, vec)))
         scored.sort(key=lambda x: -x[1])
         return scored[:top_k]
@@ -205,10 +213,10 @@ class MeshStore:
         entre vetores e μ (em graus): ~90° ⇒ espaço uniforme; ≪90° ⇒ cone dominante.
         Após all-but-the-top, o ângulo deve convergir para ~90°.
         """
-        rows = self._conn.execute("SELECT vector,scale,min_val FROM embeddings").fetchall()
+        rows = self._conn.execute("SELECT vector,scale FROM embeddings").fetchall()
         if len(rows) < 3:
             return {"itens": len(rows), "angulo_medio_com_media_graus": None}
-        vectors = [_unpack(b, sc, m) for b, sc, m in rows]
+        vectors = [_unpack(b, sc) for b, sc in rows]
         mu = mean_direction(vectors)
         raw_angle = _mean_angle_to_mean(vectors, mu)
         centered = all_but_the_top(vectors)

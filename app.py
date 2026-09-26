@@ -9,6 +9,8 @@ from distributed_os_agent_mesh import (
     build_distributed_os_mesh,
     gestate_until_emergence,
     map_execution_environments,
+    read_growth_history,
+    verify_artifact_signatures,
 )
 
 try:
@@ -29,7 +31,7 @@ else:
         return {
             "service": "turboquant-autonomous-mesh",
             "status": "ok",
-            "routes": ["/health", "/run-once", "/gestate", "/environments", "/plan"],
+            "routes": ["/health", "/environments", "/plan", "/growth", "/run-once", "/gestate", "/summary"],
         }
 
     @app.get("/health")
@@ -49,11 +51,18 @@ else:
     def plan() -> Dict[str, Any]:
         return map_execution_environments()["execution_plan"]
 
+    @app.get("/growth")
+    def growth(project: str = Query("turboquant"), workspace: str = Query(".")) -> Dict[str, Any]:
+        """Histórico de crescimento persistido pela malha (sem executar um novo ciclo)."""
+        return read_growth_history(project_name=project, workspace_root=workspace)
+
     @app.post("/run-once")
     def run_once(project: str = Query("turboquant"), workspace: str = Query(".")) -> Dict[str, Any]:
         supervisor = AutonomousSupervisor(project_name=project, workspace_root=workspace, interval_s=1, max_cycles=1)
         supervisor.cycle = 1
-        return supervisor.run_once()
+        payload = supervisor.run_once()
+        payload["signatures_valid"] = verify_artifact_signatures(payload["artifacts"], payload["artifact_signatures"])
+        return payload
 
     @app.post("/gestate")
     def gestate(
@@ -62,7 +71,9 @@ else:
         interval: int = Query(1, ge=1),
         cycles: int = Query(5, ge=1, le=50),
     ) -> Dict[str, Any]:
-        return gestate_until_emergence(project_name=project, workspace_root=workspace, interval_s=interval, max_cycles=cycles)
+        payload = gestate_until_emergence(project_name=project, workspace_root=workspace, interval_s=interval, max_cycles=cycles)
+        payload["signatures_valid"] = verify_artifact_signatures(payload["artifacts"], payload["artifact_signatures"])
+        return payload
 
     @app.get("/summary")
     def summary(project: str = Query("turboquant"), workspace: str = Query(".")) -> Dict[str, str]:

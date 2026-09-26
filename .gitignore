@@ -1,3 +1,4 @@
-.turboquant_memory.json
+.turboquant_memory*.json
+.turboquant_*.tmp
 __pycache__/
 *.pyc

@@ -8,14 +8,16 @@ import hmac
 import json
 import os
 import platform
+import re
 import shutil
+import tempfile
 import threading
 import time
 from dataclasses import dataclass, field
 from enum import Enum
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from typing import Dict, List, Optional, Set
+from typing import Dict, List, Optional, Set, Tuple
 
 
 class TaskStatus(str, Enum):
@@ -56,7 +58,7 @@ class SecurityGuardian:
         key = signing_key or os.getenv("TURBOQUANT_SIGNING_KEY") or "turboquant-dev-key"
         self.signing_key = key.encode("utf-8")
 
-    def validate_content(self, content: str) -> tuple[bool, Optional[str]]:
+    def validate_content(self, content: str) -> Tuple[bool, Optional[str]]:
         low = content.lower()
         for bad in self.BLOCKLIST:
             if bad in low:
@@ -67,11 +69,36 @@ class SecurityGuardian:
         digest = hmac.new(self.signing_key, artifact.encode("utf-8"), hashlib.sha256).hexdigest()
         return f"hmac-sha256:{digest}"
 
+    def verify_signature(self, artifact: str, signature: str) -> bool:
+        """Valida integridade/autenticidade de um artefato assinado (timing-safe)."""
+        return hmac.compare_digest(self.sign_artifact(artifact), signature or "")
+
 
 class ProjectMemory:
-    def __init__(self, project_name: str, memory_file: str = ".turboquant_memory.json") -> None:
+    """Memória persistente por projeto.
+
+    Correções aplicadas:
+    - O arquivo de memória agora vive dentro de ``workspace_root`` (antes era
+      relativo ao diretório de trabalho atual do processo).
+    - Cada projeto possui arquivo próprio (``.turboquant_memory_<slug>.json``),
+      evitando que um projeto sobrescreva a memória de outro.
+    - Leitura tolerante a corrupção (retorna estado limpo em vez de quebrar o ciclo).
+    - Escrita atômica (arquivo temporário + ``os.replace``) para evitar arquivos
+      truncados quando o supervisor autônomo é interrompido no meio do save.
+    """
+
+    def __init__(
+        self,
+        project_name: str,
+        memory_file: Optional[str] = None,
+        workspace_root: str = ".",
+    ) -> None:
         self.project_name = project_name
-        self.memory_path = Path(memory_file)
+        if memory_file is not None:
+            self.memory_path = Path(memory_file)
+        else:
+            slug = re.sub(r"[^a-zA-Z0-9_.-]+", "_", project_name).strip("_") or "default"
+            self.memory_path = Path(workspace_root) / f".turboquant_memory_{slug}.json"
         self.state: Dict[str, object] = {
             "project": project_name,
             "runs": 0,
@@ -86,9 +113,13 @@ class ProjectMemory:
     def load(self) -> None:
         if not self.memory_path.exists():
             return
-        with self.memory_path.open("r", encoding="utf-8") as f:
-            raw = json.load(f)
-        if raw.get("project") == self.project_name:
+        try:
+            with self.memory_path.open("r", encoding="utf-8") as f:
+                raw = json.load(f)
+        except (OSError, json.JSONDecodeError):
+            # memória corrompida: recomeça limpa em vez de derrubar a malha
+            return
+        if isinstance(raw, dict) and raw.get("project") == self.project_name:
             self.state = raw
 
     def save(
@@ -127,8 +158,21 @@ class ProjectMemory:
             env_history.append(environment_event)
         self.state["environment_history"] = env_history[-100:]
 
-        with self.memory_path.open("w", encoding="utf-8") as f:
-            json.dump(self.state, f, ensure_ascii=False, indent=2)
+        # escrita atômica: temp + os.replace (evita memória truncada/corrompida)
+        self.memory_path.parent.mkdir(parents=True, exist_ok=True)
+        fd, tmp_path = tempfile.mkstemp(
+            dir=str(self.memory_path.parent), prefix=".turboquant_", suffix=".tmp"
+        )
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                json.dump(self.state, f, ensure_ascii=False, indent=2)
+            os.replace(tmp_path, self.memory_path)
+        except OSError:
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
+            raise
 
     def brief(self) -> str:
         return (
@@ -291,7 +335,7 @@ class MeshOrchestrator:
         self.workspace_root = workspace_root
         self.memory = SharedMemory()
         self.guardian = SecurityGuardian()
-        self.project_memory = ProjectMemory(project_name=project_name)
+        self.project_memory = ProjectMemory(project_name=project_name, workspace_root=workspace_root)
         self.project_memory.load()
 
         self.repositories = RepositoryScout(root=workspace_root).discover()
@@ -418,7 +462,7 @@ class AutonomousSupervisor:
 
     def run_once(self) -> dict:
         mesh = MeshOrchestrator(project_name=self.project_name, workspace_root=self.workspace_root)
-        mesh.run()
+        mesh.run()  # já persiste relatório + ambiente via save atômico
 
         tasks_done = sum(1 for t in mesh.tasks.values() if t.status == TaskStatus.DONE)
         fitness = self._fitness(tasks_done, len(mesh.tasks), len(mesh.memory.security_alerts), len(mesh.repositories))
@@ -432,7 +476,17 @@ class AutonomousSupervisor:
         }
         self.growth_history.append(growth_event)
 
-        mesh.project_memory.save(mesh.memory, growth_event=growth_event, environment_event=mesh.environment)
+        # registra o evento de crescimento na memória persistente sem duplicar
+        # a contagem de execuções nem os artefatos já gravados por mesh.run()
+        growth_history = list(mesh.project_memory.state.get("growth_history", []))
+        growth_history.append(growth_event)
+        mesh.project_memory.state["growth_history"] = growth_history[-200:]
+        fd, tmp_path = tempfile.mkstemp(
+            dir=str(mesh.project_memory.memory_path.parent), prefix=".turboquant_", suffix=".tmp"
+        )
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(mesh.project_memory.state, f, ensure_ascii=False, indent=2)
+        os.replace(tmp_path, mesh.project_memory.memory_path)
 
         payload = {
             "cycle": self.cycle,
@@ -442,6 +496,7 @@ class AutonomousSupervisor:
             "environments": mesh.environment,
             "execution_plan": mesh.execution_plan,
             "artifacts": mesh.memory.artifacts,
+            "artifact_signatures": mesh.memory.artifact_signatures,
             "decisions": mesh.memory.decisions,
             "security_alerts": mesh.memory.security_alerts,
             "repo_fingerprint": mesh.repo_fingerprint,
@@ -454,7 +509,11 @@ class AutonomousSupervisor:
     def run_loop(self, stop_on_emergence: bool = True) -> None:
         while True:
             self.cycle += 1
-            self.run_once()
+            try:
+                self.run_once()
+            except Exception:  # noqa: BLE001 - supervisor autônomo nunca deve morrer por um ciclo falho
+                time.sleep(min(self.interval_s, 5))
+                continue
             if stop_on_emergence and self.growth_stage == "emergencia":
                 break
             if self.max_cycles and self.cycle >= self.max_cycles:
@@ -466,6 +525,31 @@ def build_distributed_os_mesh(project_name: str = "turboquant", workspace_root: 
     orchestrator = MeshOrchestrator(project_name=project_name, workspace_root=workspace_root)
     orchestrator.run()
     return orchestrator.summarize()
+
+
+def verify_artifact_signatures(
+    artifacts: Dict[str, str], signatures: Dict[str, str]
+) -> bool:
+    """Confere se todos os artefatos publicados possuem assinatura HMAC válida."""
+    guardian = SecurityGuardian()
+    if not artifacts or set(artifacts) != set(signatures):
+        return False
+    return all(guardian.verify_signature(artifacts[key], signatures[key]) for key in artifacts)
+
+
+def read_growth_history(project_name: str = "turboquant", workspace_root: str = ".") -> dict:
+    """Lê o histórico de crescimento persistido sem executar um novo ciclo da malha."""
+    memory = ProjectMemory(project_name=project_name, workspace_root=workspace_root)
+    memory.load()
+    history = list(memory.state.get("growth_history", []))
+    latest = history[-1] if history else None
+    return {
+        "project": project_name,
+        "runs": int(memory.state.get("runs", 0)),
+        "stage": (latest or {}).get("stage", "concepcao"),
+        "cycle": (latest or {}).get("cycle", 0),
+        "history": history[-50:],
+    }
 
 
 def map_execution_environments() -> dict:
@@ -499,29 +583,33 @@ def serve_mesh(
         supervisor.run_once()
 
     class MeshHandler(BaseHTTPRequestHandler):
-        def do_GET(self) -> None:  # noqa: N802
-            if self.path == "/health":
-                body_obj = {"status": "ok", "cycle": supervisor.cycle, "stage": supervisor.growth_stage}
-            elif self.path == "/growth":
-                body_obj = {"cycle": supervisor.cycle, "stage": supervisor.growth_stage, "history": supervisor.growth_history[-50:]}
-            elif self.path == "/environments":
-                body_obj = supervisor.last_payload.get("environments", map_execution_environments().get("environment", {}))
-            elif self.path == "/plan":
-                body_obj = supervisor.last_payload.get("execution_plan", map_execution_environments().get("execution_plan", {}))
-            else:
-                body_obj = supervisor.last_payload or {"status": "initializing"}
-
+        def _send_json(self, body_obj: object, status: int = 200) -> None:
             body = json.dumps(body_obj, ensure_ascii=False, indent=2).encode("utf-8")
-            self.send_response(200)
+            self.send_response(status)
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
             self.wfile.write(body)
 
+        def do_GET(self) -> None:  # noqa: N802
+            path = self.path.split("?", 1)[0].rstrip("/") or "/"
+            if path == "/health":
+                self._send_json({"status": "ok", "cycle": supervisor.cycle, "stage": supervisor.growth_stage})
+            elif path == "/growth":
+                self._send_json({"cycle": supervisor.cycle, "stage": supervisor.growth_stage, "history": supervisor.growth_history[-50:]})
+            elif path == "/environments":
+                self._send_json(supervisor.last_payload.get("environments", map_execution_environments()["environment"]))
+            elif path == "/plan":
+                self._send_json(supervisor.last_payload.get("execution_plan", map_execution_environments()["execution_plan"]))
+            elif path == "/":
+                self._send_json(supervisor.last_payload or {"status": "initializing"})
+            else:
+                self._send_json({"error": "rota nao encontrada", "routes": ["/", "/health", "/growth", "/environments", "/plan"]}, status=404)
+
         def log_message(self, format: str, *args: object) -> None:
             return
 
-    server = HTTPServer((host, port), MeshHandler)
+    server = ThreadingHTTPServer((host, port), MeshHandler)
     url = f"http://{host}:{port}"
     print(f"Mesh TurboQuant disponível em: {url}")
     print(f"Health: {url}/health | Growth: {url}/growth | Environments: {url}/environments | Plan: {url}/plan")

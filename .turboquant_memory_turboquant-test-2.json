@@ -1,0 +1,109 @@
+{
+  "project": "turboquant-test-2",
+  "runs": 2,
+  "historical_decisions": [
+    "T1 concluída por architect com assinatura hmac-sha256:e6670547...",
+    "T2 concluída por kernel com assinatura hmac-sha256:b67f8181...",
+    "T3 concluída por network com assinatura hmac-sha256:0f6fa219...",
+    "T4 concluída por security com assinatura hmac-sha256:e7dbf810...",
+    "T5 concluída por observability com assinatura hmac-sha256:26858174...",
+    "T6 concluída por qa com assinatura hmac-sha256:9b91db7a...",
+    "T7 concluída por release com assinatura hmac-sha256:5e417c69...",
+    "T1 concluída por architect com assinatura hmac-sha256:3d2adf43...",
+    "T2 concluída por kernel com assinatura hmac-sha256:785255c3...",
+    "T3 concluída por network com assinatura hmac-sha256:451cb873...",
+    "T4 concluída por security com assinatura hmac-sha256:c63bf1c8...",
+    "T5 concluída por observability com assinatura hmac-sha256:2b931c8e...",
+    "T6 concluída por qa com assinatura hmac-sha256:ef600bb1...",
+    "T7 concluída por release com assinatura hmac-sha256:bd4768b7..."
+  ],
+  "historical_artifacts": {
+    "artifact:T1": "[architect] T1: Mapear requisitos a partir dos repositórios. Missão: Desenhar malha completa baseada em repositórios da organização. Contexto: sem contexto prévio. Memória turboquant-test-2: 1 execuções, 7 decisões, 7 artefatos.. RepoBootstrap: workspace: README.md: # maya  Malha autônoma TurboQuant com provisionamento por repositórios, segurança integrada (assinatura HMAC verificável), gestação monitorada e mapeamento automático dos ambientes de execução. | app.py: \"\"\"FastAPI entrypoint para deploy (ex.: Vercel).\"\"\"  from __future__ import annotations | asgi.py: \"\"\"ASGI entry point alternativo.\"\"\" from app import app.",
+    "artifact:T2": "[kernel] T2: Construir runtime da IA autônoma. Missão: Provisionar runtime autônomo com filas e workers. Contexto: artifact:T1. Memória turboquant-test-2: 1 execuções, 7 decisões, 7 artefatos.. RepoBootstrap: workspace: README.md: # maya  Malha autônoma TurboQuant com provisionamento por repositórios, segurança integrada (assinatura HMAC verificável), gestação monitorada e mapeamento automático dos ambientes de execução. | app.py: \"\"\"FastAPI entrypoint para deploy (ex.: Vercel).\"\"\"  from __future__ import annotations | asgi.py: \"\"\"ASGI entry point alternativo.\"\"\" from app import app.",
+    "artifact:T3": "[network] T3: Criar camada de memória compartilhada. Missão: Sincronizar memória distribuída e mensageria. Contexto: artifact:T1, artifact:T2. Memória turboquant-test-2: 1 execuções, 7 decisões, 7 artefatos.. RepoBootstrap: workspace: README.md: # maya  Malha autônoma TurboQuant com provisionamento por repositórios, segurança integrada (assinatura HMAC verificável), gestação monitorada e mapeamento automático dos ambientes de execução. | app.py: \"\"\"FastAPI entrypoint para deploy (ex.: Vercel).\"\"\"  from __future__ import annotations | asgi.py: \"\"\"ASGI entry point alternativo.\"\"\" from app import app.",
+    "artifact:T4": "[security] T4: Aplicar controles de segurança e assinatura. Missão: Aplicar zero-trust, validação e assinatura. Contexto: artifact:T1, artifact:T2, artifact:T3. Memória turboquant-test-2: 1 execuções, 7 decisões, 7 artefatos.. RepoBootstrap: workspace: README.md: # maya  Malha autônoma TurboQuant com provisionamento por repositórios, segurança integrada (assinatura HMAC verificável), gestação monitorada e mapeamento automático dos ambientes de execução. | app.py: \"\"\"FastAPI entrypoint para deploy (ex.: Vercel).\"\"\"  from __future__ import annotations | asgi.py: \"\"\"ASGI entry point alternativo.\"\"\" from app import app.",
+    "artifact:T5": "[observability] T5: Configurar observabilidade e auditoria. Missão: Entregar métricas, logs e auditoria. Contexto: artifact:T1, artifact:T2, artifact:T3, artifact:T4. Memória turboquant-test-2: 1 execuções, 7 decisões, 7 artefatos.. RepoBootstrap: workspace: README.md: # maya  Malha autônoma TurboQuant com provisionamento por repositórios, segurança integrada (assinatura HMAC verificável), gestação monitorada e mapeamento automático dos ambientes de execução. | app.py: \"\"\"FastAPI entrypoint para deploy (ex.: Vercel).\"\"\"  from __future__ import annotations | asgi.py: \"\"\"ASGI entry point alternativo.\"\"\" from app import app.",
+    "artifact:T6": "[qa] T6: Executar QA da malha completa. Missão: Executar cenários de resiliência e segurança. Contexto: artifact:T1, artifact:T2, artifact:T3, artifact:T4, artifact:T5. Memória turboquant-test-2: 1 execuções, 7 decisões, 7 artefatos.. RepoBootstrap: workspace: README.md: # maya  Malha autônoma TurboQuant com provisionamento por repositórios, segurança integrada (assinatura HMAC verificável), gestação monitorada e mapeamento automático dos ambientes de execução. | app.py: \"\"\"FastAPI entrypoint para deploy (ex.: Vercel).\"\"\"  from __future__ import annotations | asgi.py: \"\"\"ASGI entry point alternativo.\"\"\" from app import app.",
+    "artifact:T7": "[release] T7: Provisionar acesso HTTP local da malha. Missão: Publicar endpoint de acesso e plano de rollout. Contexto: artifact:T1, artifact:T2, artifact:T3, artifact:T4, artifact:T5, artifact:T6. Memória turboquant-test-2: 1 execuções, 7 decisões, 7 artefatos.. RepoBootstrap: workspace: README.md: # maya  Malha autônoma TurboQuant com provisionamento por repositórios, segurança integrada (assinatura HMAC verificável), gestação monitorada e mapeamento automático dos ambientes de execução. | app.py: \"\"\"FastAPI entrypoint para deploy (ex.: Vercel).\"\"\"  from __future__ import annotations | asgi.py: \"\"\"ASGI entry point alternativo.\"\"\" from app import app."
+  },
+  "historical_signatures": {
+    "artifact:T1": "hmac-sha256:3d2adf43cf2cb0e190a60ea844eeef2eb7b6abe8b1d588f97e2c984f0b46436f",
+    "artifact:T2": "hmac-sha256:785255c3ab03872d279789d941426034c1ad6aab93eba130e1b085c2e92351e4",
+    "artifact:T3": "hmac-sha256:451cb8730ec6759615b7daca2b2d46266790e2c154ba22c511aeb05be5ed798a",
+    "artifact:T4": "hmac-sha256:c63bf1c8b46ca49bd3a2f4ba8cfc6ff393443159b08c52d467eed5ab34681698",
+    "artifact:T5": "hmac-sha256:2b931c8ec2f1ee8d7e043dba519a7720b8f65881efaa309fd54350e6dd29bcc3",
+    "artifact:T6": "hmac-sha256:ef600bb1d123c099f420958a48c4ee59e24f5d62ccbcdaa796707c95a581aab0",
+    "artifact:T7": "hmac-sha256:bd4768b7a0310e478cdde1ea829c522ebf6e75b71be679ed2613741e8a4d9253"
+  },
+  "run_reports": [
+    {
+      "timestamp": 1790426761,
+      "duration_s": 0.0,
+      "repo_fingerprint": "c52ddf65534b7b46035084358ab7902be4bfef220bdb503ac7039cc861905b05",
+      "security_alerts": 0,
+      "tasks_done": 7,
+      "execution_target": "local-process"
+    },
+    {
+      "timestamp": 1790426839,
+      "duration_s": 0.0,
+      "repo_fingerprint": "c52ddf65534b7b46035084358ab7902be4bfef220bdb503ac7039cc861905b05",
+      "security_alerts": 0,
+      "tasks_done": 7,
+      "execution_target": "local-process"
+    }
+  ],
+  "growth_history": [],
+  "environment_history": [
+    {
+      "timestamp": 1790426761,
+      "platform": {
+        "system": "Linux",
+        "release": "5.10.134-013.15.kangaroo.al8.x86_64",
+        "machine": "x86_64",
+        "python": "3.12.10"
+      },
+      "container": {
+        "in_docker": true,
+        "in_kubernetes": false
+      },
+      "tools": {
+        "python3": true,
+        "docker": false,
+        "podman": false,
+        "kubectl": false,
+        "git": true
+      },
+      "gpu": {
+        "nvidia_device": false,
+        "dri_device": false
+      },
+      "workspace": "/workspace"
+    },
+    {
+      "timestamp": 1790426839,
+      "platform": {
+        "system": "Linux",
+        "release": "5.10.134-013.15.kangaroo.al8.x86_64",
+        "machine": "x86_64",
+        "python": "3.12.10"
+      },
+      "container": {
+        "in_docker": true,
+        "in_kubernetes": false
+      },
+      "tools": {
+        "python3": true,
+        "docker": false,
+        "podman": false,
+        "kubectl": false,
+        "git": true
+      },
+      "gpu": {
+        "nvidia_device": false,
+        "dri_device": false
+      },
+      "workspace": "/workspace"
+    }
+  ]
+}
